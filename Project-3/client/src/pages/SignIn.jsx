@@ -1,22 +1,25 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React from 'react'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom';
 export default function SignIn() {
-    
-  const [Data, setData] = useState({});
+  const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [loading,setLoading] = useState(false);
+  const [Data, setData] = useState({});
   const handleChange = (e) =>{
     setData({
       ...Data,
     [e.target.id]: e.target.value,
     });
-  }
+    
 
+  }
   const handleSubmit = async (e)=>{
     e.preventDefault();
     try{
     setLoading(true);
-    const res = await fetch("/api/auth/signup",
+    const res = await fetch("/api/auth/signin",
       {
         method:'POST',
         headers: {
@@ -26,30 +29,31 @@ export default function SignIn() {
         body: JSON.stringify(Data)
       }
     );
-    const data = res.json()
+    
+    const data = await res.json()
     if (data.success === false){
       setError(data.message);
       setLoading(false);
       return;
     }
     setLoading(false);
-
-    }catch(error){
-      setLoading(false);
-      setError(error.message);
-
+    setError(null);
+    navigate("/")
     }
-
-  }
-
+    catch(error)    
+      {
+        setLoading(false);
+        setError(error.message);
+      }
+  };
   return (
     <div className='p-3 max-w-lg mx-auto'>
       <h1 className='text-3xl text-center font-semibold my-9'>Sign In</h1>
-      <form onChange={handleChange} onSubmit={handleSubmit} className='flex flex-col gap-4'>
+      <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
         
-        <input type = "email" placeholder='email' className='border p-3 rounded-lg ' id = 'email'/>
+        <input onChange={handleChange} type = "email" placeholder='email' className='border p-3 rounded-lg ' id = 'email'/>
         
-        <input type = "password" placeholder='password' className='border p-3 rounded-lg ' id = 'password'/>
+        <input onChange={handleChange} type = "password" placeholder='password' className='border p-3 rounded-lg ' id = 'password'/>
         <button disabled={loading} className='bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80 '>
         {loading ? 'loading..' : "Sign In"}
         </button>
@@ -63,6 +67,5 @@ export default function SignIn() {
         </div>
         {error && <p className='text-red-500 mt-5'>{error}</p>}
     </div>
-     
   )
 }
