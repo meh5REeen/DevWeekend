@@ -8,6 +8,7 @@ import SignIn from "./pages/SignIn.jsx";
 import Header from './Components/Header.jsx';
 export default function App() {
   return (
+    
     <BrowserRouter>
     <Header/>
     <Routes>
@@ -18,5 +19,6 @@ export default function App() {
         <Route path ="/profile" element = {<Profile/>}/>
     </Routes>
     </BrowserRouter>
+    
   )
 }
