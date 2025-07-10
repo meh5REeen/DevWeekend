@@ -1,3 +1,4 @@
+import { createNextState } from "@reduxjs/toolkit";
 import User from "../models/user.js";
 export const test =(req,res) => {
     res.json({
@@ -5,17 +6,29 @@ export const test =(req,res) => {
     })
 }
 
-export const updateAvatar = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+export const updateUser = async (req, res,next) => {
+ 
+try{
+  if (req.body.password){
+    req.body.password = bcryptjs.hashSync(req.body.password,10);
+  }
 
-    user.avatar = req.body.avatar; 
-    await user.save();
-
-    res.json({ message: 'Avatar updated', avatar: user.avatar });
-  } catch (err) {
+  const UpdatedUser = await User.findByIdAndUpdate(
+    req.params.id,{
+      $set:{
+        username : req.body.username,
+        email : request.body.email,
+        password:req.body.password,
+        avatar:req.body.avatar
+      },
+    },
+    {new : true}
+  );
+  const {password,...rest} = UpdatedUser._doc;
+  res.status(200).json(rest)
+}
+  catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    next(err);
   }
 };

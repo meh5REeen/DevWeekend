@@ -1,8 +1,7 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import axios from "axios";
-import { setAvatar } from "../redux/user/userSlice.js";
-
+import {setCurrentUser,updateUserFailure,updateUserStart,updateUserSuccess} from '../redux/user/userSlice.js'
 export default function Profile() {
   const { currentUser } = useSelector((state) => state.user);
   const fileRef = useRef(null);
@@ -10,19 +9,14 @@ export default function Profile() {
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [fileUploadError , setFileUploadError] = useState(null);
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
+  const [updateSuccess,setUpdateSuccess] = useState(false);
+  const [formData, setFormData] = useState({
+    username: currentUser?.username || "",
+    email: currentUser?.email || "",
+    password: "",
+    avatar: currentUser?.avatar || "",
+  });
   const dispatch = useDispatch();
-
-  // initialize form fields from currentUser
-  useEffect(() => {
-    if (currentUser) {
-      setUsername(currentUser.username || "");
-      setEmail(currentUser.email || "");
-    }
-  }, [currentUser]);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -35,18 +29,21 @@ export default function Profile() {
   const uploadFile = async () => {
     if (!file) return null;
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "unsigned_preset");
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("upload_preset", "unsigned_preset");
+
     setUploading(true);
 
     try {
       const res = await axios.post(
         `https://api.cloudinary.com/v1_1/dbwz8kuoj/image/upload`,
-        formData
+        fd
       );
-      console.log("Cloudinary response:", res.data);
-      return res.data.secure_url;
+      setFormData((prev) => ({
+        ...prev,
+        avatar: res.data.secure_url,
+      }));
     } catch (err) {
       setFileUploadError(err);
       console.error("Upload error:", err);
@@ -56,32 +53,36 @@ export default function Profile() {
     }
   };
 
+
+    const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+
+
   const handleUpdate = async (e) => {
     e.preventDefault();
-
-    let uploadedUrl = currentUser.avatar;
-
-    if (file) {
-      const cloudUrl = await uploadFile();
-      if (!cloudUrl) return;
-      uploadedUrl = cloudUrl;
-    }
+    dispatch(updateUserStart());
 
     try {
-      const updatedData = {
-        username,
-        email,
-        ...(password && { password }), // only include password if filled
-        avatar: uploadedUrl,
-      };
+      uploadFile();
+      const res = await axios.put(`/api/user/${currentUser._id}/update`, formData);
 
-      await axios.put(`/api/user/${currentUser._id}/avatar`, updatedData);
-
-      dispatch(setAvatar(uploadedUrl));
-      setPreviewUrl(""); // clear preview
+     if (res.data) {
+         dispatch(setCurrentUser(res.data));
+         
+      }
       setFile(null);
+      setUpdateSuccess(true);
+      dispatch(updateUserSuccess(res.data));
+      
     } catch (err) {
       setFileUploadError(err);
+      dispatch(updateUserFailure(err));
       console.error("Failed to update profile", err);
     }
   };
@@ -118,24 +119,24 @@ export default function Profile() {
           type="text"
           placeholder="username"
           className="border p-3 rounded-lg"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          value={currentUser.username}
+          onChange={handleChange}
         />
         <input
           id="email"
           type="email"
           placeholder="email"
           className="border p-3 rounded-lg"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={currentUser.email}
+          onChange={handleChange}
         />
         <input
           id="password"
           type="password"
           placeholder="password"
           className="border p-3 rounded-lg"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          value={currentUser.password}
+          onChange={handleChange}
         />
 
         <button
@@ -145,16 +146,18 @@ export default function Profile() {
         >
           {uploading ? "Updating..." : "Update"}
         </button>
+        
         <p>
           {fileUploadError ?
           <span className="bg-red-700">
             {fileUploadError}
-          </span>:(
+          </span>:updateSuccess?(
             <span className="bg-green-700">
             Upload Successful
           </span>
 
-          )}
+          ): null
+        }
         </p>
       </form>
 
