@@ -1,8 +1,9 @@
-import express from "express";
+import express, { application } from "express";
 import mongoose from "mongoose"
 import dotenv from "dotenv";
 import userRouter from "./routes/userRoute.js"
 import {authRouter} from "./routes/authRoute.js"
+import listingRouter from "./routes/ListingRoute.js"
 import cookieParser from "cookie-parser";
 import cors from 'cors';
 
@@ -32,6 +33,8 @@ app.use(cors({
 //Apis
 app.use("/api/user",userRouter);
 app.use("/api/auth",authRouter);
+app.use('/api/listing',listingRouter);
+
 
 app.get("/tests",(req,res)=>{
     try{
