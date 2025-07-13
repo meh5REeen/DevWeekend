@@ -3,7 +3,6 @@ import bcryptjs from "bcryptjs";
 import { errorHandler } from "../utils/error.js";
 import jwt from "jsonwebtoken";
 export const signup = async (req, res, next) => {
-    console.log("Hi it's me SignUp");
   const { username, email, password } = req.body;
   const hashedPassword = bcryptjs.hashSync(password, 10);
   const newUser = new User({ username, email, password: hashedPassword });
@@ -16,7 +15,6 @@ export const signup = async (req, res, next) => {
 };
 
 export const signin = async(req,res,next) =>{
-  console.log("Hi it's me Signin");
   const {email,password} = req.body;
   try{
     const validUser = await User.findOne({email});
@@ -28,8 +26,16 @@ export const signin = async(req,res,next) =>{
     if (!validPassword) return next(errorHandler(401,"Wrong Credentials!"));
     const token = jwt.sign({id:validUser._id},process.env.JWT_SECRET);
     const {password:pass,...rest} = validUser._doc;
-    res.cookie('access_token',token,{httpOnly:true,maxAge: 24 * 60 * 60 * 1000}  // 1 day
-).status(200).json(rest);
+    res.cookie('access_token',token,
+      {
+        maxAge: 24 * 60 * 60 * 1000,
+        
+        secure:false,
+      }  // 1 day
+      ).status(200).json({
+        ...rest,
+        access_token: token
+      });
 
 
   }catch(error){

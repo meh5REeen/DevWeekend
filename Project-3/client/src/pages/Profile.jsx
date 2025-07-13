@@ -1,29 +1,34 @@
 import React, { useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import axios from "axios";
-import {setCurrentUser,updateUserFailure,updateUserStart,updateUserSuccess} from '../redux/user/userSlice.js'
+import {useNavigate} from "react-router-dom";
+import {
+  deleteUserFailure,
+  deleteUserStart,
+  deleteUserSuccess,
+  updateUserFailure,
+  updateUserStart,
+  updateUserSuccess
+} from '../redux/user/userSlice.js';
+
 export default function Profile() {
-  const { currentUser } = useSelector((state) => state.user);
+  const navigate =  useNavigate();
+  const { currentUser, loading, error } = useSelector((state) => state.user);
   const fileRef = useRef(null);
   const [file, setFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [fileUploadError , setFileUploadError] = useState(null);
-  const [updateSuccess,setUpdateSuccess] = useState(false);
+  const [fileUploadError, setFileUploadError] = useState(false);
   const [formData, setFormData] = useState({
     username: currentUser?.username || "",
     email: currentUser?.email || "",
     password: "",
     avatar: currentUser?.avatar || "",
   });
+  const [updateSuccess, setUpdateSuccess] = useState(false);
   const dispatch = useDispatch();
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     setFile(selectedFile);
-    if (selectedFile) {
-      setPreviewUrl(URL.createObjectURL(selectedFile));
-    }
   };
 
   const uploadFile = async () => {
@@ -32,8 +37,6 @@ export default function Profile() {
     const fd = new FormData();
     fd.append("file", file);
     fd.append("upload_preset", "unsigned_preset");
-
-    setUploading(true);
 
     try {
       const res = await axios.post(
@@ -44,127 +47,158 @@ export default function Profile() {
         ...prev,
         avatar: res.data.secure_url,
       }));
+      return res.data.secure_url;
     } catch (err) {
-      setFileUploadError(err);
+      setFileUploadError(true);
       console.error("Upload error:", err);
       return null;
-    } finally {
-      setUploading(false);
     }
   };
 
-
-    const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.id]: e.target.value,
+    });
   };
 
-
-
-  const handleUpdate = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     dispatch(updateUserStart());
 
     try {
-      uploadFile();
-      const res = await axios.put(`/api/user/${currentUser._id}/update`, formData);
-
-     if (res.data) {
-         dispatch(setCurrentUser(res.data));
-         
+      // Upload file first if selected
+      let avatarUrl = formData.avatar;
+      if (file) {
+        avatarUrl = await uploadFile();
       }
-      setFile(null);
-      setUpdateSuccess(true);
-      dispatch(updateUserSuccess(res.data));
-      
+
+      const updateData = {
+        username: formData.username,
+        email: formData.email,
+        ...(formData.password && { password: formData.password }),
+        ...(avatarUrl && { avatar: avatarUrl })
+      };
+      const token = localStorage.getItem('access_token');
+     
+      const res = await axios.put(`http://localhost:3000/api/user/${currentUser._id}/update`,updateData,
+  {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    withCredentials: true,
+  }
+  );
+
+      if (res.data) {
+        dispatch(updateUserSuccess(res.data));
+        setUpdateSuccess(true);
+        setFile(null);
+      }
     } catch (err) {
-      setFileUploadError(err);
-      dispatch(updateUserFailure(err));
-      console.error("Failed to update profile", err);
+      dispatch(updateUserFailure(
+        err.response?.data?.message || 
+        err.message || 
+        "Update failed"
+      ));
+
+
+    }};
+
+    const handleDelete= async ()=>{
+        try{
+                const token = localStorage.getItem('access_token');
+
+          dispatch(deleteUserStart());
+          const res = await fetch(`http://localhost:3000/api/user/${currentUser._id}/delete`,{
+            method:'DELETE',
+            credentials: 'include',
+            headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          });
+
+
+          const data = await res.json();
+          if(data.success === false){
+            dispatch(deleteUserFailure(data.message));
+            return;
+          } 
+          localStorage.removeItem('access_token');
+
+          dispatch(deleteUserSuccess(data));
+          navigate("/");
+        }catch(error){
+          dispatch(deleteUserFailure(error.message));
+        }
     }
-  };
+  
 
   return (
-    <div className="p-3 max-w-lg mx-auto">
-      <h1 className="text-3xl font-semibold text-center my-7">Profile</h1>
-
-      <form onSubmit={handleUpdate} className="flex gap-4 flex-col">
+    <div className='p-3 max-w-lg mx-auto'>
+      <h1 className='text-3xl font-semibold text-center my-7'>Profile</h1>
+      <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
         <input
-          type="file"
+          onChange={handleFileChange}
+          type='file'
           ref={fileRef}
           hidden
-          accept="image/*"
-          onChange={handleFileChange}
+          accept='image/*'
         />
         <img
           onClick={() => fileRef.current.click()}
-          src={
-            previewUrl ||
-            currentUser?.avatar ||
-            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQ_Op4Qn7cM-RkGM2MFM0EmODTGSEBCG7ehA6K7AB0Ak6-SmgpMFhQYpQuHjhOddSQlJw&usqp=CAU.png"
-          }
-          alt="profile"
-          className="self-center mt-2 rounded-full h-24 w-24 object-cover cursor-pointer"
+          src={formData.avatar || currentUser.avatar||"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQ_Op4Qn7cM-RkGM2MFM0EmODTGSEBCG7ehA6K7AB0Ak6-SmgpMFhQYpQuHjhOddSQlJw&usqp=CAU.png"}
+          alt='profile'
+          className='rounded-full h-24 w-24 object-cover cursor-pointer self-center mt-2'
         />
-
-        {uploading && (
-          <p className="text-center text-sm text-gray-500">Uploading...</p>
+        {fileUploadError && (
+          <p className='text-red-700 text-center text-sm'>
+            Error uploading image (image must be less than 2MB)
+          </p>
         )}
-
         <input
-          id="username"
-          type="text"
-          placeholder="username"
-          className="border p-3 rounded-lg"
-          value={currentUser.username}
+          type='text'
+          placeholder='username'
+          id='username'
+          value={formData.username}
+          className='border p-3 rounded-lg'
           onChange={handleChange}
         />
         <input
-          id="email"
-          type="email"
-          placeholder="email"
-          className="border p-3 rounded-lg"
-          value={currentUser.email}
+          type='email'
+          placeholder='email'
+          id='email'
+          value={formData.email}
+          className='border p-3 rounded-lg'
           onChange={handleChange}
         />
         <input
-          id="password"
-          type="password"
-          placeholder="password"
-          className="border p-3 rounded-lg"
-          value={currentUser.password}
+          type='password'
+          placeholder='password'
+          id='password'
+          value={formData.password}
+          className='border p-3 rounded-lg'
           onChange={handleChange}
         />
-
         <button
-          className="bg-slate-700 text-white rounded-lg p-3 uppercase hover:opacity-95 disabled:opacity-80"
-          disabled={uploading}
-          type="submit"
+          disabled={loading}
+          className='bg-slate-700 text-white rounded-lg p-3 uppercase hover:opacity-95 disabled:opacity-80'
         >
-          {uploading ? "Updating..." : "Update"}
+          {loading ? 'Loading...' : 'Update'}
         </button>
-        
-        <p>
-          {fileUploadError ?
-          <span className="bg-red-700">
-            {fileUploadError}
-          </span>:updateSuccess?(
-            <span className="bg-green-700">
-            Upload Successful
-          </span>
-
-          ): null
-        }
-        </p>
       </form>
 
-      <div className="flex justify-between mt-5">
-        <span className="text-red-700 cursor-pointer">Delete Account</span>
-        <span className="text-red-700 cursor-pointer">Sign Out</span>
+      <div className='flex justify-between mt-5'>
+        <span className='text-red-700 cursor-pointer' onClick={handleDelete}>Delete account</span>
+        <span className='text-red-700 cursor-pointer'>Sign out</span>
       </div>
+
+      {error && <p className='text-red-700 mt-5'>{error.message}</p>}
+      {updateSuccess && (
+        <p className='text-green-700 mt-5'>Profile updated successfully!</p>
+      )}
     </div>
   );
-}
+};
