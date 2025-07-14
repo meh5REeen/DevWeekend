@@ -9,7 +9,10 @@ import {
   deleteUserSuccess,
   updateUserFailure,
   updateUserStart,
-  updateUserSuccess
+  updateUserSuccess,
+  signoutUserStart,
+  signoutUserFailure,
+  signoutUserSuccess
 } from '../redux/user/userSlice.js';
 
 export default function Profile() {
@@ -107,6 +110,25 @@ export default function Profile() {
 
     }};
 
+    const handleSignOut = async() =>{
+      try{
+        dispatch(signoutUserStart())
+        const res = await fetch('http://localhost:3000/api/auth/signout');
+        const data =await res.json();
+        if(data.success === false){
+           dispatch(signoutUserFailure(data.message))
+          return
+        }
+        localStorage.removeItem("access_token");
+
+        dispatch(signoutUserSuccess(data.message))
+        navigate("/sign-in")
+      }
+      catch(error){
+          dispatch(signoutUserFailure(error.message))  
+      }
+    }
+
     const handleDelete= async ()=>{
         try{
                 const token = localStorage.getItem('access_token');
@@ -198,7 +220,7 @@ export default function Profile() {
         
       <div className='flex justify-between mt-5'>
         <span className='text-red-700 cursor-pointer' onClick={handleDelete}>Delete account</span>
-        <span className='text-red-700 cursor-pointer'>Sign out</span>
+        <span className='text-red-700 cursor-pointer' onClick={handleSignOut}>Sign out</span>
       </div>
 
       {error && <p className='text-red-700 mt-5'>{error.message}</p>}
