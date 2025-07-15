@@ -195,7 +195,33 @@ export default function Profile() {
 
 
 
+    const handleDeleteListing = async (id) => {
+      const token = localStorage.getItem("token");
 
+      try{
+        const res = await fetch(`http://localhost:3000/api/listing/delete/${id}`,{
+          method:'DELETE',
+            credentials: 'include',
+            headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        
+        }})
+        const data = await res.json();
+        if(data.success === false){
+          console.log(data.message)
+          return;
+        }
+        setUserListings((prev) =>{
+          prev.filter((listing) => listing._id !== id)
+        })
+
+
+
+      }catch(error){
+        console.log(error.message)
+      }
+    }
 
 
   return (
@@ -284,7 +310,7 @@ export default function Profile() {
           </Link>
 
           <div className="gap-4 flex flex-col">
-            <button className="text-red-700 uppercase">Delete</button>
+            <button onClick={()=>handleDeleteListing(listing._id)} className="text-red-700 uppercase">Delete</button>
             <button className="text-green-700 uppercase">Edit</button>
 
           </div>
