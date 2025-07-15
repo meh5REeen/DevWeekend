@@ -1,9 +1,10 @@
 import React, { useState} from 'react'
-// import { useSelector } from 'react-redux';
+import {useNavigate} from 'react-router-dom';
+import { useSelector } from 'react-redux';
 export default function CreateListing() {
     const [files , setFiles] = useState([]);
-    // const { currentUser } = useSelector((state) => state.user);
-    // const navigate = useNavigate();
+    const { currentUser } = useSelector((state) => state.user);
+    const navigate = useNavigate();
     const CLOUDINARY_URL = import.meta.env.VITE_CLOUDINARY_URL;
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
   const [formData, setFormData] = useState({
@@ -15,15 +16,15 @@ const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
     bedrooms: 1,
     bathrooms: 1,
     regularPrice: 50,
-    discountPrice: 0,
+    discountedPrice: 50,
     offer: false,
-    parking: false,
+    Parking: false,
     furnished: false,
   });
   const [imageUploadError, setImageUploadError] = useState(false);
   const [uploading, setUploading] = useState(false);
-  // const [error, setError] = useState(false);
-  // const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
   console.log(formData);
     console.log(files);
 
@@ -64,6 +65,7 @@ const storeImage = async (file) => {
 
   return fetch(CLOUDINARY_URL, {
     method: 'POST',
+    
     body: formData,
   })
     .then((res) => res.json())
@@ -83,11 +85,68 @@ const handleRemoveImage = (index) => {
 })
 }
 
+const handleChange = (e) =>{
+  if(e.target.id === 'sale' || e.target.id === 'rent')
+  {
+    setFormData(
+      {
+        ...formData,type:e.target.id
+      }
+    )
+  }
+  if (e.target.id === 'Parking'|| e.target.id === 'furnished' ||e.target.id === 'offer')
+  {
+    setFormData({
+      ...formData,
+      [e.target.id] : e.target.checked
+    })
+  }
 
+  if(e.target.type === 'number' || e.target.type === 'text' || e.target.tagName === 'TEXTAREA'){
+    setFormData({
+      ...formData,
+      [e.target.id] : e.target.value
+    })
+  }
+};
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if(formData.imageUrls.length < 1) return setError("You must upload an image");
+  if(+formData.regularPrice < +formData.discountedPrice) return setError("Discounted Price must be less than the regular price");
+  const token = localStorage.getItem('access_token');
+  try{
+    setLoading(true);
+    setError(false);
+    const res = await fetch('http://localhost:3000/api/listing/create',{
+      method : 'POST',
+      headers :{
+        'Content-Type':'application/json',
+        Authorization : `Bearer ${token}`
+      },
+      body : JSON.stringify({...formData,
+        userRef : currentUser._id
+      }),
+
+
+    });
+    const data = await res.json();
+    setLoading(false);
+
+    if(data.success === false){
+      setError(data.message);
+    }
+    navigate(`/listing/${data._id}`)
+
+  }catch(error){
+    setError(error.message);
+    setLoading(false);
+  }
+}
   return (
   <div className="p-3 max-w-4xl mx-auto">
     <h1 className="text-3xl font-semibold text-center my-7">Create A Listing</h1>
-    <form className="flex flex-col sm:flex-row gap-4">
+    <form  onSubmit = {handleSubmit} className="flex flex-col sm:flex-row gap-4">
       <div className="flex flex-col gap-4 flex-1">
         <input
           type="text"
@@ -97,12 +156,16 @@ const handleRemoveImage = (index) => {
           maxLength="62"
           minLength="10"
           required
+          value={formData.name}
+          onChange={handleChange}
         />
         <textarea
           placeholder="Description"
           className="border p-3 rounded-lg"
           id="description"
           required
+          value={formData.description}
+          onChange={handleChange}
         />
         <input
           type="text"
@@ -110,26 +173,74 @@ const handleRemoveImage = (index) => {
           className="border p-3 rounded-lg"
           id="address"
           required
+          value={formData.address}
+          onChange={handleChange}
         />
 
-        <div className="flex gap-6 flex-wrap">
-          {["Sale", "rent", "parking", "furnished", "offer"].map((id) => (
-            <div className="flex gap-2" key={id}>
-              <input type="checkbox" id={id} className="w-5" />
-              <span>{id.charAt(0).toUpperCase() + id.slice(1)}</span>
+        <div className='flex gap-6 flex-wrap'>
+            <div className='flex gap-2'>
+              <input
+                type='checkbox'
+                id='sale'
+                className='w-5'
+                onChange={handleChange}
+                checked={formData.type === 'sale'}
+              />
+              <span>Sell</span>
             </div>
-          ))}
-        </div>
+            <div className='flex gap-2'>
+              <input
+                type='checkbox'
+                id='rent'
+                className='w-5'
+                onChange={handleChange}
+                checked={formData.type === 'rent'}
+              />
+              <span>Rent</span>
+            </div>
+            <div className='flex gap-2'>
+              <input
+                type='checkbox'
+                id='Parking'
+                className='w-5'
+                onChange={handleChange}
+                checked={formData.Parking}
+              />
+              <span>Parking spot</span>
+            </div>
+            <div className='flex gap-2'>
+              <input
+                type='checkbox'
+                id='furnished'
+                className='w-5'
+                onChange={handleChange}
+                checked={formData.furnished}
+              />
+              <span>Furnished</span>
+            </div>
+            <div className='flex gap-2'>
+              <input
+                type='checkbox'
+                id='offer'
+                className='w-5'
+                onChange={handleChange}
+                checked={formData.offer}
+              />
+              <span>Offer</span>
+            </div>
+          </div>
 
         <div className="flex flex-wrap gap-6">
           <div className="flex items-center gap-2">
             <input
               className="p-3 border border-gray-300 rounded-lg"
               type="number"
-              id="bedroom"
+              id="bedrooms"
               min="1"
               max="10"
               required
+              onChange={handleChange}
+              value={formData.bedrooms}
             />
             <p>Beds</p>
           </div>
@@ -137,10 +248,12 @@ const handleRemoveImage = (index) => {
             <input
               className="p-3 border border-gray-300 rounded-lg"
               type="number"
-              id="bathroom"
+              id="bathrooms"
               min="1"
               max="10"
               required
+              onChange={handleChange}
+              value={formData.bathrooms}
             />
             <p>Baths</p>
           </div>
@@ -149,15 +262,18 @@ const handleRemoveImage = (index) => {
               className="p-3 border border-gray-300 rounded-lg"
               type="number"
               id="regularPrice"
-              min="1"
+              min="50"
               max="1000000"
               required
+              onChange={handleChange}
+              value={formData.regularPrice}
             />
             <div className="flex flex-col items-center">
               <p>Regular Price</p>
               <span className="text-xs">$ /month</span>
             </div>
           </div>
+          {formData.offer &&
           <div className="flex items-center gap-2">
             <input
               className="p-3 border border-gray-300 rounded-lg"
@@ -166,12 +282,14 @@ const handleRemoveImage = (index) => {
               min="1"
               max="1000000"
               required
+              onChange={handleChange}
+              value={formData.discountedPrice}
             />
             <div className="flex flex-col items-center">
               <p>Discounted Price</p>
               <span className="text-xs">$ /month</span>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -229,10 +347,13 @@ const handleRemoveImage = (index) => {
         </div>
 
         <button
+        disabled={loading || uploading}
+          
           className="p-3 bg-slate-700 text-white rounded-lg uppercase hover:opacity-95 disabled:opacity-80"
         >
-          Create Listing
+          {loading?'Loading':'Create Listing'}
         </button>
+        {error && <p className='text-red-700 text-sm'>{error}</p>}
       </div>
     </form>
   </div>
