@@ -6,6 +6,7 @@ import {authRouter} from "./routes/authRoute.js"
 import listingRouter from "./routes/ListingRoute.js"
 import cookieParser from "cookie-parser";
 import cors from 'cors';
+import path from 'path';
 
 dotenv.config();
 const app = express();
@@ -34,7 +35,11 @@ app.use(cors({
 app.use("/api/user",userRouter);
 app.use("/api/auth",authRouter);
 app.use('/api/listing',listingRouter);
+app.use(express.static(path.join(_dirname,'/client/dist')))
 
+app.get('*',(req,res) => {
+    res.sendFile(path.join(_dirname,'client','dist','index.html'))
+})
 
 app.get("/tests",(req,res)=>{
     try{
@@ -45,6 +50,7 @@ app.get("/tests",(req,res)=>{
         res.status(500).send("Something went wrong!");
     }
 })
+
 
 app.use((err,req,res, next) => {
     const statusCode =  err.statusCode || 500;
@@ -57,6 +63,8 @@ app.use((err,req,res, next) => {
     )
 });
 
+
 app.listen(process.env.PORT, ()=>{
     console.log("Server running on port",process.env.PORT);
 })
+const _dirname = path.resolve();
