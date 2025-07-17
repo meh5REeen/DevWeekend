@@ -16,10 +16,28 @@ export default function Search() {
     )
     const [loading,setLoading] = useState(false);
     const [listing,setListing] = useState([]);
+    const [showMore , setshowMore] = useState(false);
     
-    console.log(listing);
-    console.log(loading);
-
+    const onShowMoreClick = async()=>{
+        const numberofListings = listing.length;
+        const startIndex = numberofListings;
+        const urlParams = new URLSearchParams(location.search);
+        urlParams.set('startIndex',startIndex);
+        const searchQuery = urlParams.toString();
+        const res =  await fetch(`http://localhost:3000/api/listing/get?${searchQuery}`,{
+            method:'GET',
+            credentials: 'include',
+            headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        }
+        })
+        const data=  await res.json();
+        if(data.length < 9){
+            setshowMore(false);
+        }
+        setListing([...listing,...data]);
+    }
     const token = localStorage.getItem('access_token');
     useEffect(()=>{
         const urlParams = new URLSearchParams(location.search);
@@ -65,11 +83,14 @@ export default function Search() {
 
             })
             const data = await res.json();
+            if(data.length > 8) {
+                setshowMore(true);
+            }
             setListing(data);
             setLoading(false);
         }
     fetchListing();
-    },[])
+    },[location.search])
 
 
 
@@ -107,7 +128,7 @@ const handleSubmit = (e) => {
     urlParams.set('sort',sidebardata.sort)
     urlParams.set('order',sidebardata.order)
     const searchQuery = urlParams.toString()
-    navigate(`/search/${searchQuery}`)
+    navigate(`/search?${searchQuery}`)
 }
 
   return (
@@ -203,6 +224,12 @@ const handleSubmit = (e) => {
                     return <Card key={listin._id} listing={listin} />;
                 })}
 
+                {showMore && (
+                    <button onClick={()=>{
+                        onShowMoreClick();
+                    }}
+                    className='text-green-700 hover:underline p-7 text-center w-full '>Show More</button>
+                )}
                 </div>    
       </div>    
     </div>
