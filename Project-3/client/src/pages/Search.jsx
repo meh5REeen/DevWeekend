@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { useState } from 'react';
 import {useNavigate} from 'react-router-dom';
+import Card from '../Components/Card';
 export default function Search() {
     const [sidebardata,setSidebardata] = useState(
         {
@@ -14,7 +15,7 @@ export default function Search() {
         }
     )
     const [loading,setLoading] = useState(false);
-    const [listing,setListing] = useState(null);
+    const [listing,setListing] = useState([]);
     
     console.log(listing);
     console.log(loading);
@@ -189,10 +190,21 @@ const handleSubmit = (e) => {
                    
             </form>
       </div>
-      <div className=''>
+      <div className='flex-1'>
             <h1 className='text-3xl font-semibold border-b p-3 text-slate-700 mt-5'>Listing Results</h1>
+            <div className='p-7'>
+                {!loading && listing.length === 0 && (
+                    <p className='text-xl text-slate-700'> No listing Found</p>
+                )}
+                {loading && (
+                    <p className='text-xl text-slate-700 text-center w-full'>Loading...</p>
+                )}
+                {!loading && listing && listing.map((listin) => {
+                    return <Card key={listin._id} listing={listin} />;
+                })}
 
-      </div>
+                </div>    
+      </div>    
     </div>
   )
 }

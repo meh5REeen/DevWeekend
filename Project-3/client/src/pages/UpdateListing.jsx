@@ -18,7 +18,7 @@ const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
     regularPrice: 50,
     discountedPrice: 50,
     offer: false,
-    Parking: false,
+    parking: false,
     furnished: false,
   });
   const [imageUploadError, setImageUploadError] = useState(false);
@@ -114,7 +114,7 @@ const handleChange = (e) =>{
       }
     )
   }
-  if (e.target.id === 'Parking'|| e.target.id === 'furnished' ||e.target.id === 'offer')
+  if (e.target.id === 'parking'|| e.target.id === 'furnished' ||e.target.id === 'offer')
   {
     setFormData({
       ...formData,
@@ -221,10 +221,10 @@ const handleSubmit = async (e) => {
             <div className='flex gap-2'>
               <input
                 type='checkbox'
-                id='Parking'
+                id='parking'
                 className='w-5'
                 onChange={handleChange}
-                checked={formData.Parking}
+                checked={formData.parking}
               />
               <span>Parking spot</span>
             </div>
