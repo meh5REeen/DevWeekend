@@ -5,6 +5,7 @@ import {Swiper,SwiperSlide} from 'swiper/react';
 import SwiperCore from 'swiper';
 import {Navigation} from 'swiper/modules';
 import 'swiper/css/bundle';
+import Contact from '../Components/Contact';
 import {
   FaBath,
   FaBed,
