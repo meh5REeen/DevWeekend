@@ -30,7 +30,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-
+const _dirname = path.resolve();
 //Apis
 app.use("/api/user",userRouter);
 app.use("/api/auth",authRouter);
@@ -67,4 +67,3 @@ app.use((err,req,res, next) => {
 app.listen(process.env.PORT, ()=>{
     console.log("Server running on port",process.env.PORT);
 })
-const _dirname = path.resolve();
